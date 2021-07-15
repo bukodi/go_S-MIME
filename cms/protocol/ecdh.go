@@ -13,7 +13,7 @@ import (
 	"errors"
 	"math/big"
 
-	"github.com/InfiniteLoopSpace/go_S-MIME/oid"
+	"../../oid"
 )
 
 var errUnsupported = errors.New("Unsupported hash function")

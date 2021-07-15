@@ -12,8 +12,8 @@ import (
 	"strings"
 	"testing"
 
-	openssl "github.com/InfiniteLoopSpace/go_S-MIME/openssl"
-	pki "github.com/InfiniteLoopSpace/go_S-MIME/pki"
+	"../openssl"
+	"../pki"
 )
 
 var (

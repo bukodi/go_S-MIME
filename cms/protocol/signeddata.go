@@ -17,8 +17,8 @@ import (
 	"net/http"
 	"time"
 
-	asn "github.com/InfiniteLoopSpace/go_S-MIME/asn1"
-	oid "github.com/InfiniteLoopSpace/go_S-MIME/oid"
+	asn "../../asn1"
+	"../../oid"
 )
 
 // SignedDataContent returns SignedData if ContentType is SignedData.

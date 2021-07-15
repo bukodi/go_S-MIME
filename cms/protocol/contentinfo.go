@@ -7,8 +7,8 @@ import (
 	"encoding/asn1"
 	"fmt"
 
-	asn "github.com/InfiniteLoopSpace/go_S-MIME/asn1"
-	"github.com/InfiniteLoopSpace/go_S-MIME/b64"
+	asn "../../asn1"
+	"../../b64"
 )
 
 // ContentInfo ::= SEQUENCE {
