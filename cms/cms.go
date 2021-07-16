@@ -9,9 +9,9 @@ import (
 	"log"
 	"time"
 
-	"../oid"
-	"../timestamp"
-	"./protocol"
+	"github.com/bukodi/go_S-MIME/cms/protocol"
+	"github.com/bukodi/go_S-MIME/oid"
+	"github.com/bukodi/go_S-MIME/timestamp"
 )
 
 // CMS is an instance of cms to en-/decrypt and sign/verfiy CMS data

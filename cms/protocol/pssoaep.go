@@ -8,7 +8,7 @@ import (
 	"encoding/asn1"
 	"errors"
 
-	"../../oid"
+	"github.com/bukodi/go_S-MIME/oid"
 )
 
 type pssParameters struct {

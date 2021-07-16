@@ -13,12 +13,12 @@ import (
 	"log"
 	"strings"
 
-	"../oid"
+	"github.com/bukodi/go_S-MIME/oid"
 
-	"../b64"
+	"github.com/bukodi/go_S-MIME/b64"
 
-	cms "../cms"
-	mime "../mime"
+	"github.com/bukodi/go_S-MIME/cms"
+	"github.com/bukodi/go_S-MIME/mime"
 )
 
 // SMIME is an instance of cms to en-/decrypt and sign/verfiy SMIME messages

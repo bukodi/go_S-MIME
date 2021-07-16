@@ -17,8 +17,8 @@ import (
 	"net/http"
 	"time"
 
-	asn "../../asn1"
-	"../../oid"
+	asn "github.com/bukodi/go_S-MIME/asn1"
+	"github.com/bukodi/go_S-MIME/oid"
 )
 
 // SignedDataContent returns SignedData if ContentType is SignedData.

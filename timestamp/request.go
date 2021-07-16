@@ -12,8 +12,8 @@ import (
 	"encoding/asn1"
 	"math/big"
 
-	cms "../cms/protocol"
-	"../oid"
+	cms "github.com/bukodi/go_S-MIME/cms/protocol"
+	"github.com/bukodi/go_S-MIME/oid"
 )
 
 // TimeStampReq ::= SEQUENCE  {

@@ -13,7 +13,7 @@ import (
 	"log"
 	"time"
 
-	oid "../../oid"
+	oid "github.com/bukodi/go_S-MIME/oid"
 )
 
 //RecipientInfo ::= CHOICE {

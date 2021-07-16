@@ -3,7 +3,7 @@ package protocol
 import (
 	"encoding/asn1"
 
-	asn "../../asn1"
+	asn "github.com/bukodi/go_S-MIME/asn1"
 )
 
 // RawValue marshals val and returns the asn1.RawValue

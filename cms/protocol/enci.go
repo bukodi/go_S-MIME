@@ -3,7 +3,7 @@ package protocol
 import (
 	"encoding/asn1"
 
-	"../../oid"
+	"github.com/bukodi/go_S-MIME/oid"
 )
 
 // EncapsulatedContentInfo ::= SEQUENCE {

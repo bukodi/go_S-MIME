@@ -6,9 +6,9 @@ import (
 	"crypto/x509"
 	"time"
 
-	"../asn1"
-	cms "../cms/protocol"
-	"../oid"
+	"github.com/bukodi/go_S-MIME/asn1"
+	cms "github.com/bukodi/go_S-MIME/cms/protocol"
+	"github.com/bukodi/go_S-MIME/oid"
 )
 
 const (

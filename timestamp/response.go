@@ -1,8 +1,8 @@
 package timestamp
 
 import (
-	asn "../asn1"
-	cms "../cms/protocol"
+	asn "github.com/bukodi/go_S-MIME/asn1"
+	cms "github.com/bukodi/go_S-MIME/cms/protocol"
 )
 
 //TimeStampResp ::= SEQUENCE  {

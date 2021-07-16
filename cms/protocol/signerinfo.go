@@ -9,8 +9,8 @@ import (
 	"fmt"
 	"time"
 
-	asn "../../asn1"
-	"../../oid"
+	asn "github.com/bukodi/go_S-MIME/asn1"
+	"github.com/bukodi/go_S-MIME/oid"
 )
 
 // SignerInfo ::= SEQUENCE {

@@ -12,8 +12,8 @@ import (
 	"strings"
 	"testing"
 
-	"../openssl"
-	"../pki"
+	"github.com/bukodi/go_S-MIME/openssl"
+	"github.com/bukodi/go_S-MIME/pki"
 )
 
 var (

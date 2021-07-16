@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	cms "../cms/protocol"
+	cms "github.com/bukodi/go_S-MIME/cms/protocol"
 )
 
 // PKIStatusInfo ::= SEQUENCE {

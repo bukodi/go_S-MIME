@@ -6,9 +6,9 @@ import (
 	"math/big"
 	"time"
 
-	asn "../asn1"
-	cms "../cms/protocol"
-	"../oid"
+	asn "github.com/bukodi/go_S-MIME/asn1"
+	cms "github.com/bukodi/go_S-MIME/cms/protocol"
+	"github.com/bukodi/go_S-MIME/oid"
 )
 
 // TSTInfo ::= SEQUENCE  {

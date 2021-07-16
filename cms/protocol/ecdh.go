@@ -13,7 +13,7 @@ import (
 	"errors"
 	"math/big"
 
-	"../../oid"
+	"github.com/bukodi/go_S-MIME/oid"
 )
 
 var errUnsupported = errors.New("Unsupported hash function")

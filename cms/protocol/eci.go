@@ -4,7 +4,7 @@ import (
 	"crypto/x509/pkix"
 	"encoding/asn1"
 
-	"../../oid"
+	"github.com/bukodi/go_S-MIME/oid"
 )
 
 //EncryptedContentInfo ::= SEQUENCE {
