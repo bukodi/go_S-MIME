@@ -6,12 +6,13 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/asn1"
-	"fmt"
 	"time"
 
 	asn "github.com/bukodi/go_S-MIME/asn1"
 	"github.com/bukodi/go_S-MIME/oid"
 )
+
+const dummy2 = asn.TagBitString
 
 // SignerInfo ::= SEQUENCE {
 //   version CMSVersion,
@@ -33,7 +34,7 @@ type SignerInfo struct {
 
 //SignerIdentifier ::= CHOICE {
 //	issuerAndSerialNumber IssuerAndSerialNumber,
-//	subjectKeyIdentifier [0] SubjectKeyIdentifier }
+//	subjectKeyIdentifier [0] ExtensionSubjectKeyIdentifier }
 type SignerIdentifier struct {
 	IAS IssuerAndSerialNumber `asn1:"optional"`
 	SKI []byte                `asn1:"optional,tag:0"`
@@ -51,12 +52,12 @@ func (si SignerInfo) FindCertificate(certs []*x509.Certificate) (*x509.Certifica
 				return cert, nil
 			}
 		}
-	case 3: // SID is SubjectKeyIdentifier
+	case 3: // SID is ExtensionSubjectKeyIdentifier
 		ski := si.SID.SKI
 
 		for _, cert := range certs {
 			for _, ext := range cert.Extensions {
-				if oid.SubjectKeyIdentifier.Equal(ext.Id) {
+				if oid.ExtensionSubjectKeyIdentifier.Equal(ext.Id) {
 					if bytes.Equal(ski, ext.Value) {
 						return cert, nil
 					}
@@ -74,7 +75,7 @@ func (si SignerInfo) FindCertificate(certs []*x509.Certificate) (*x509.Certifica
 // 0 is returned for unrecognized algorithms.
 func (si SignerInfo) Hash() (crypto.Hash, error) {
 	algo := si.DigestAlgorithm.Algorithm.String()
-	hash := oid.DigestAlgorithmToHash[algo]
+	hash := oid.DigestAlgorithmToCryptoHash[algo]
 	if hash == 0 || !hash.Available() {
 		return 0, ErrUnsupported
 	}
@@ -84,18 +85,18 @@ func (si SignerInfo) Hash() (crypto.Hash, error) {
 
 // X509SignatureAlgorithm gets the x509.SignatureAlgorithm that should be used
 // for verifying this SignerInfo's signature.
-func (si SignerInfo) X509SignatureAlgorithm() (sigAlg x509.SignatureAlgorithm, err error) {
+func (si SignerInfo) X509SignatureAlgorithm() x509.SignatureAlgorithm {
 	var (
 		sigOID    = si.SignatureAlgorithm.Algorithm.String()
 		digestOID = si.DigestAlgorithm.Algorithm.String()
 	)
-	sigAlg, ok := oid.SignatureAlgorithms[sigOID][digestOID]
 
-	if !ok {
-		err = fmt.Errorf("Signature algorithm with OID %s in combination with digest with OID %s not supported", sigOID, digestOID)
+	if sa := oid.SignatureAlgorithmToX509SignatureAlgorithm[sigOID]; sa != x509.UnknownSignatureAlgorithm {
+		return sa
 	}
 
-	return
+	return oid.PublicKeyAndDigestAlgorithmToX509SignatureAlgorithm[sigOID][digestOID]
+
 }
 
 // GetContentTypeAttribute gets the signed ContentType attribute from the
@@ -109,7 +110,7 @@ func (si SignerInfo) GetContentTypeAttribute() (asn1.ObjectIdentifier, error) {
 	}
 
 	var ct asn1.ObjectIdentifier
-	if rest, err := asn.Unmarshal(rv.FullBytes, &ct); err != nil {
+	if rest, err := asn1.Unmarshal(rv.FullBytes, &ct); err != nil {
 		return nil, err
 	} else if len(rest) > 0 {
 		return nil, ErrTrailingData
@@ -149,7 +150,7 @@ func (si SignerInfo) GetSigningTimeAttribute() (time.Time, error) {
 		return t, ASN1Error{"bad class or tag"}
 	}
 
-	if rest, err := asn.Unmarshal(rv.FullBytes, &t); err != nil {
+	if rest, err := asn1.Unmarshal(rv.FullBytes, &t); err != nil {
 		return t, err
 	} else if len(rest) > 0 {
 		return t, ErrTrailingData

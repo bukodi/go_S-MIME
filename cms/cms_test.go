@@ -9,6 +9,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -238,6 +239,9 @@ func TestSignOpenSSL(t *testing.T) {
 		t.Error(err)
 	}
 	cms.roots.AddCert(root.Certificate)
+
+	fmt.Printf("detachedSig := %#v\n", sig)
+	fmt.Printf("cert := %#v\n", root.Certificate.Raw)
 
 	_, err = cms.Verify(sig)
 	if err != nil {

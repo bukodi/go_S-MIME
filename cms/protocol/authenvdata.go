@@ -90,7 +90,7 @@ func authcontentInfo(ed AuthEnvelopedData) (ci ContentInfo, err error) {
 	}
 
 	ci = ContentInfo{
-		ContentType: oid.AuthEnvelopedData,
+		ContentType: oid.ContentTypeAuthEnvelopedData,
 		Content: asn1.RawValue{
 			Class:      asn1.ClassContextSpecific,
 			Tag:        0,
@@ -116,7 +116,7 @@ func (ed AuthEnvelopedData) ContentInfo() (ContentInfo, error) {
 	}
 
 	return ContentInfo{
-		ContentType: oid.AuthEnvelopedData,
+		ContentType: oid.ContentTypeAuthEnvelopedData,
 		Content: asn1.RawValue{
 			Class:      asn1.ClassContextSpecific,
 			Tag:        0,
@@ -130,7 +130,7 @@ func (ed AuthEnvelopedData) ContentInfo() (ContentInfo, error) {
 // AuthEnvelopedDataContent unmarshals ContentInfo and returns AuthEnvelopedData if
 // content type is AuthEnvelopedData.
 func (ci ContentInfo) AuthEnvelopedDataContent() (*AuthEnvelopedData, error) {
-	if !ci.ContentType.Equal(oid.AuthEnvelopedData) {
+	if !ci.ContentType.Equal(oid.ContentTypeAuthEnvelopedData) {
 		return nil, ErrWrongType
 	}
 

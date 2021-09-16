@@ -71,7 +71,7 @@ func (cms *CMS) AddAttribute(attrType asn1.ObjectIdentifier, val interface{}) (e
 // Encrypt encrypts data for the recipients and returns DER-encoded ASN.1 ContentInfo.
 func (cms *CMS) Encrypt(data []byte, recipients []*x509.Certificate) (der []byte, err error) {
 
-	eci, key, _, err := protocol.NewEncryptedContentInfo(oid.Data, cms.ContentEncryptionAlgorithm, data)
+	eci, key, _, err := protocol.NewEncryptedContentInfo(oid.ContentTypeData, cms.ContentEncryptionAlgorithm, data)
 	if err != nil {
 		return
 	}
@@ -100,7 +100,7 @@ func (cms *CMS) Encrypt(data []byte, recipients []*x509.Certificate) (der []byte
 // AuthEncrypt AEAD-encrypts data for the recipients and returns DER-encoded ASN.1 ContentInfo.
 func (cms *CMS) AuthEncrypt(data []byte, recipients []*x509.Certificate) (der []byte, err error) {
 
-	eci, key, mac, err := protocol.NewEncryptedContentInfo(oid.Data, oid.EncryptionAlgorithmAES128GCM, data)
+	eci, key, mac, err := protocol.NewEncryptedContentInfo(oid.ContentTypeData, oid.EncryptionAlgorithmAES128GCM, data)
 	if err != nil {
 		return
 	}
@@ -234,7 +234,7 @@ func (cms *CMS) VerifyDetached(contentInfo, msg []byte) (chains [][][]*x509.Cert
 	return
 }
 
-// AddTimestamps adds a timestamp to the SignedData using the RFC3161
+// AddTimestamps adds a timestamp to the ContentTypeSignedData using the RFC3161
 // timestamping service at the given URL. This timestamp proves that the signed
 // message existed the time of generation, allowing verifiers to have more trust
 // in old messages signed with revoked keys.

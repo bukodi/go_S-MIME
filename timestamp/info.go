@@ -44,7 +44,7 @@ type TSTInfo struct {
 // ParseInfo parses an Info out of a CMS EncapsulatedContentInfo.
 func ParseInfo(enci cms.EncapsulatedContentInfo) (TSTInfo, error) {
 	i := TSTInfo{}
-	if !enci.EContentType.Equal(oid.TSTInfo) {
+	if !enci.EContentType.Equal(oid.ContentTypeTSTInfo) {
 		return i, cms.ErrWrongType
 	}
 

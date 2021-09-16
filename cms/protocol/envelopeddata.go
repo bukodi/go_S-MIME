@@ -9,6 +9,8 @@ import (
 	"github.com/bukodi/go_S-MIME/oid"
 )
 
+const dummy = asn.TagBitString
+
 //EnvelopedData ::= SEQUENCE {
 //	version CMSVersion,
 //	originatorInfo [0] IMPLICIT OriginatorInfo OPTIONAL,
@@ -67,13 +69,13 @@ func (ed *EnvelopedData) decryptKey(keyPair tls.Certificate) (key []byte, err er
 
 // EnvelopedDataContent returns EnvelopedData if ContentType is EnvelopedData.
 func (ci ContentInfo) EnvelopedDataContent() (*EnvelopedData, error) {
-	if !ci.ContentType.Equal(oid.EnvelopedData) {
+	if !ci.ContentType.Equal(oid.ContentTypeEnvelopedData) {
 		return nil, ErrWrongType
 	}
 
 	//var Ed interface{}
 	ed := new(EnvelopedData)
-	if rest, err := asn.Unmarshal(ci.Content.Bytes, ed); err != nil {
+	if rest, err := asn1.Unmarshal(ci.Content.Bytes, ed); err != nil {
 		return nil, err
 	} else if len(rest) > 0 {
 		return nil, ErrTrailingData
@@ -96,7 +98,7 @@ func (ed EnvelopedData) ContentInfo() (ContentInfo, error) {
 	}
 
 	return ContentInfo{
-		ContentType: oid.EnvelopedData,
+		ContentType: oid.ContentTypeEnvelopedData,
 		Content: asn1.RawValue{
 			Class:      asn1.ClassContextSpecific,
 			Tag:        0,

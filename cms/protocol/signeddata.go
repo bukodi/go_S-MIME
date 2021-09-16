@@ -21,14 +21,16 @@ import (
 	"github.com/bukodi/go_S-MIME/oid"
 )
 
+const dummy3 = asn.TagBitString
+
 // SignedDataContent returns SignedData if ContentType is SignedData.
 func (ci ContentInfo) SignedDataContent() (*SignedData, error) {
-	if !ci.ContentType.Equal(oid.SignedData) {
+	if !ci.ContentType.Equal(oid.ContentTypeSignedData) {
 		return nil, ErrWrongType
 	}
 
 	sd := new(SignedData)
-	if rest, err := asn.Unmarshal(ci.Content.Bytes, sd); err != nil {
+	if rest, err := asn1.Unmarshal(ci.Content.Bytes, sd); err != nil {
 		return nil, err
 	} else if len(rest) > 0 {
 		return nil, ErrTrailingData
@@ -128,9 +130,10 @@ func (sd *SignedData) AddSignerInfo(keypPair tls.Certificate, attrs []Attribute)
 
 	var signerOpts crypto.SignerOpts
 	digestAlgorithm := digestAlgorithmForPublicKey(cert.PublicKey)
-	signatureAlgorithm, ok := oid.PublicKeyAlgorithmToSignatureAlgorithm[keypPair.Leaf.PublicKeyAlgorithm]
+	signatureAlgorithmOid, ok := oid.DelPublicKeyAlgorithmToSignatureAlgorithm[keypPair.Leaf.PublicKeyAlgorithm]
+	signatureAlgorithm := pkix.AlgorithmIdentifier{Algorithm: signatureAlgorithmOid}
 	if isRSAPSS(cert) {
-		h := oid.DigestAlgorithmToHash[digestAlgorithm.Algorithm.String()]
+		h := oid.DigestAlgorithmToCryptoHash[digestAlgorithm.Algorithm.String()]
 		signatureAlgorithm, signerOpts, err = newPSS(h, cert.PublicKey.(*rsa.PublicKey))
 	}
 	if !ok {
@@ -187,7 +190,7 @@ func (sd *SignedData) AddSignerInfo(keypPair tls.Certificate, attrs []Attribute)
 	si.SignedAttrs = append(si.SignedAttrs, mdAttr, ctAttr, sTAttr)
 	si.SignedAttrs = append(si.SignedAttrs, attrs...)
 
-	sm, err := asn.MarshalWithParams(si.SignedAttrs, `set`)
+	sm, err := asn1.MarshalWithParams(si.SignedAttrs, `set`)
 	if err != nil {
 		return err
 	}
@@ -236,7 +239,7 @@ func (sd *SignedData) AddCertificate(cert []byte) error {
 	}
 
 	var rv asn1.RawValue
-	if _, err := asn.Unmarshal(cert, &rv); err != nil {
+	if _, err := asn1.Unmarshal(cert, &rv); err != nil {
 		return err
 	}
 
@@ -293,13 +296,13 @@ func (sd *SignedData) X509Certificates() (map[string]*x509.Certificate, error) {
 func (sd *SignedData) ContentInfo() (ContentInfo, error) {
 	var nilCI ContentInfo
 
-	der, err := asn.Marshal(*sd)
+	der, err := asn1.Marshal(*sd)
 	if err != nil {
 		return nilCI, err
 	}
 
 	return ContentInfo{
-		ContentType: oid.SignedData,
+		ContentType: oid.ContentTypeSignedData,
 		Content: asn1.RawValue{
 			Class:      asn1.ClassContextSpecific,
 			Tag:        0,
@@ -386,18 +389,19 @@ func (sd *SignedData) Verify(Opts x509.VerifyOptions, detached []byte) (chains [
 				return
 			}
 
-			signedMessage, err = asn.MarshalWithParams(signer.SignedAttrs, `set`)
+			signedMessage, err = asn1.MarshalWithParams(signer.SignedAttrs, `set`)
 			if err != nil {
 				return
 			}
 		}
 		var sigAlg x509.SignatureAlgorithm
-		sigAlg, err = signer.X509SignatureAlgorithm()
-		if err != nil {
-			return
+		sigAlg = signer.X509SignatureAlgorithm()
+		if sigAlg == x509.UnknownSignatureAlgorithm {
+			return nil, ErrUnsupported
 		}
+
 		switch signer.SignatureAlgorithm.Algorithm.String() {
-		case oid.SignatureAlgorithmRSASSAPSS.String():
+		case oid.SignatureAlgorithmRSAPSS.String():
 		default:
 			err = cert.CheckSignature(sigAlg, signedMessage, signer.Signature)
 		}

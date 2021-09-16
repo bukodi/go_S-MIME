@@ -103,7 +103,7 @@ type MessageImprint struct {
 
 // NewMessageImprint creates a new MessageImprint, digesting msg using the specified hash.
 func NewMessageImprint(hash crypto.Hash, msg []byte) (MessageImprint, error) {
-	digestAlgorithm := oid.HashToDigestAlgorithm[hash]
+	digestAlgorithm := oid.CryptoHashToDigestAlgorithm[hash]
 	if len(digestAlgorithm) == 0 {
 		return MessageImprint{}, cms.ErrUnsupported
 	}

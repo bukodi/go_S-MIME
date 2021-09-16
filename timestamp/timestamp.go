@@ -55,7 +55,7 @@ func FetchTSToken(url string, msg []byte, hash crypto.Hash) (tsToken cms.Content
 
 // VerfiyTS verfies the given TSToken and returns the TSTInfo.
 func VerfiyTS(ci cms.ContentInfo) (info TSTInfo, err error) {
-	if !ci.ContentType.Equal(oid.SignedData) {
+	if !ci.ContentType.Equal(oid.ContentTypeSignedData) {
 		err = cms.ErrUnsupported
 		return
 	}
