@@ -6,13 +6,11 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/asn1"
+	"fmt"
 	"time"
 
-	asn "github.com/bukodi/go_S-MIME/asn1"
 	"github.com/bukodi/go_S-MIME/oid"
 )
-
-const dummy2 = asn.TagBitString
 
 // SignerInfo ::= SEQUENCE {
 //   version CMSVersion,
@@ -24,7 +22,7 @@ const dummy2 = asn.TagBitString
 //   unsignedAttrs [1] IMPLICIT UnsignedAttributes OPTIONAL }
 type SignerInfo struct {
 	Version            int                      ``                          // CMSVersion ::= INTEGER    { v0(0), v1(1), v2(2), v3(3), v4(4), v5(5) }
-	SID                SignerIdentifier         `asn1:"choice"`             //
+	SID                asn1.RawValue            ``                          //
 	DigestAlgorithm    pkix.AlgorithmIdentifier ``                          // DigestAlgorithmIdentifier ::= AlgorithmIdentifier
 	SignedAttrs        []Attribute              `asn1:"set,optional,tag:0"` // SignedAttributes ::= SET SIZE (1..MAX) OF Attribute
 	SignatureAlgorithm pkix.AlgorithmIdentifier ``                          // SignatureAlgorithmIdentifier ::= AlgorithmIdentifier
@@ -40,12 +38,71 @@ type SignerIdentifier struct {
 	SKI []byte                `asn1:"optional,tag:0"`
 }
 
+func (sid SignerIdentifier) ToASN1RawValue() (*asn1.RawValue, error) {
+	var asn1Bytes []byte
+	var err error
+	if sid.IAS.Issuer.Bytes != nil && sid.SKI == nil {
+		asn1Bytes, err = asn1.Marshal(sid.IAS)
+		if err != nil {
+			return nil, err
+		}
+	} else if sid.IAS.Issuer.Bytes == nil && sid.SKI != nil {
+		asn1Bytes, err = asn1.Marshal(sid.SKI)
+		if err != nil {
+			return nil, err
+		}
+	}
+	var asn1RawValue asn1.RawValue
+	rest, err := asn1.Unmarshal(asn1Bytes, &asn1RawValue)
+	if err != nil {
+		return nil, err
+	}
+	if rest != nil && len(rest) > 0 {
+		return nil, fmt.Errorf("unprocessed bytes: %v", rest)
+	}
+	return &asn1RawValue, nil
+}
+
+// version is the syntax version number.  If the SignerIdentifier is
+// the CHOICE issuerAndSerialNumber, then the version MUST be 1.  If
+// the SignerIdentifier is subjectKeyIdentifier, then the version
+// MUST be 3.
+func (si SignerInfo) SignedIdentifier() (*SignerIdentifier, error) {
+	sid := SignerIdentifier{}
+	if si.Version == 1 {
+		sid.IAS = IssuerAndSerialNumber{}
+		rest, err := asn1.Unmarshal(si.SID.FullBytes, &sid.IAS)
+		if err != nil {
+			return nil, err
+		}
+		if rest != nil && len(rest) > 0 {
+			return nil, fmt.Errorf("unprocessed bytes: %v", rest)
+		}
+	} else if si.Version == 3 {
+		sid.SKI = make([]byte, 0)
+		rest, err := asn1.Unmarshal(si.SID.FullBytes, sid.SKI)
+		if err != nil {
+			return nil, err
+		}
+		if rest != nil && len(rest) > 0 {
+			return nil, fmt.Errorf("unprocessed bytes: %v", rest)
+		}
+	} else {
+		return nil, fmt.Errorf("unsupported version value: %d", si.Version)
+	}
+	return &sid, nil
+}
+
 // FindCertificate finds this SignerInfo's certificate in a slice of
 // certificates.
 func (si SignerInfo) FindCertificate(certs []*x509.Certificate) (*x509.Certificate, error) {
+	sid, err := si.SignedIdentifier()
+	if err != nil {
+		return nil, err
+	}
 	switch si.Version {
 	case 1: // SID is issuer and serial number
-		isn := si.SID.IAS
+		isn := sid.IAS
 
 		for _, cert := range certs {
 			if bytes.Equal(cert.RawIssuer, isn.Issuer.FullBytes) && isn.SerialNumber.Cmp(cert.SerialNumber) == 0 {
@@ -53,7 +110,7 @@ func (si SignerInfo) FindCertificate(certs []*x509.Certificate) (*x509.Certifica
 			}
 		}
 	case 3: // SID is ExtensionSubjectKeyIdentifier
-		ski := si.SID.SKI
+		ski := sid.SKI
 
 		for _, cert := range certs {
 			for _, ext := range cert.Extensions {

@@ -17,11 +17,8 @@ import (
 	"net/http"
 	"time"
 
-	asn "github.com/bukodi/go_S-MIME/asn1"
 	"github.com/bukodi/go_S-MIME/oid"
 )
-
-const dummy3 = asn.TagBitString
 
 // SignedDataContent returns SignedData if ContentType is SignedData.
 func (ci ContentInfo) SignedDataContent() (*SignedData, error) {
@@ -140,9 +137,14 @@ func (sd *SignedData) AddSignerInfo(keypPair tls.Certificate, attrs []Attribute)
 		return errors.New("unsupported certificate public key algorithm")
 	}
 
+	sidRawValue, err := sid.ToASN1RawValue()
+	if err != nil {
+		return err
+	}
+
 	si := SignerInfo{
 		Version:            1,
-		SID:                sid,
+		SID:                *sidRawValue,
 		DigestAlgorithm:    digestAlgorithm,
 		SignedAttrs:        nil,
 		SignatureAlgorithm: signatureAlgorithm,
@@ -338,7 +340,7 @@ func (sd *SignedData) Verify(Opts x509.VerifyOptions, detached []byte) (chains [
 
 	for _, signer := range sd.SignerInfos {
 		//Find and check signer Certificate:
-		sidxxx, _ := signer.SID.IAS.RawValue()
+		sidxxx := signer.SID
 		sid := fmt.Sprintf("%x", sidxxx.Bytes)
 
 		cert, exist := certs[sid]

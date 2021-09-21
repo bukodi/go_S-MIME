@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/tls"
 	"crypto/x509"
+	"crypto/x509/pkix"
 	"encoding/asn1"
 	"encoding/base64"
 	"fmt"
@@ -105,4 +106,41 @@ func TestSignOpenSSL2(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
+}
+
+func TestSignerIdentifier(t *testing.T) {
+	issuerName := pkix.Name{
+		Country:            []string{"HU"},
+		Organization:       []string{"TestOrg"},
+		OrganizationalUnit: nil,
+		Locality:           nil,
+		Province:           nil,
+		StreetAddress:      nil,
+		PostalCode:         nil,
+		SerialNumber:       "",
+		CommonName:         "TestCA",
+		Names:              nil,
+		ExtraNames:         nil,
+	}
+
+	rdnseq := issuerName.ToRDNSequence()
+	asn1issuer, err := asn1.Marshal(rdnseq)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Logf("ASN1 issuer b64=%s", base64.StdEncoding.EncodeToString(asn1issuer))
+	var rawValue asn1.RawValue
+	_, err = asn1.Unmarshal(asn1issuer, &rawValue)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Logf("RawValue = %#v", rawValue)
+
+	var rdnSeq2 pkix.RDNSequence
+	_, err = asn1.Unmarshal(asn1issuer, &rdnSeq2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Logf("RDNSequence = %#v", rdnSeq2)
+
 }
