@@ -3,6 +3,8 @@ package protocol
 import (
 	"crypto/tls"
 	"encoding/asn1"
+	"encoding/base64"
+	"fmt"
 	"log"
 
 	asn "github.com/bukodi/go_S-MIME/asn1"
@@ -14,15 +16,15 @@ const dummy = asn.TagBitString
 //EnvelopedData ::= SEQUENCE {
 //	version CMSVersion,
 //	originatorInfo [0] IMPLICIT OriginatorInfo OPTIONAL,
-//	recipientInfos RecipientInfos,
+//	RawRecipientInfos RawRecipientInfos,
 //	encryptedContentInfo EncryptedContentInfo,
 //	unprotectedAttrs [1] IMPLICIT UnprotectedAttributes OPTIONAL }
 type EnvelopedData struct {
-	Version          int
-	OriginatorInfo   asn1.RawValue        `asn1:"optional,tag:0"`
-	RecipientInfos   []RecipientInfo      `asn1:"set,choice"`
-	ECI              EncryptedContentInfo ``
-	UnprotectedAttrs []Attribute          `asn1:"set,optional,tag:1"`
+	Version           int
+	OriginatorInfo    asn1.RawValue        `asn1:"optional,tag:0"`
+	RawRecipientInfos []asn1.RawValue      `asn1:"set,choice"`
+	ECI               EncryptedContentInfo ``
+	UnprotectedAttrs  []Attribute          `asn1:"set,optional,tag:1"`
 }
 
 // Decrypt decrypts the EnvelopedData with the given keyPair and retuns the plaintext.
@@ -54,14 +56,27 @@ func (ed *EnvelopedData) Decrypt(keyPairs []tls.Certificate) (plain []byte, err 
 
 	return
 }
+func (ed *EnvelopedData) RecipientInfos() []RecipientInfo {
+	recInfos := make([]RecipientInfo, 0)
+	for _, asn1Ri := range ed.RawRecipientInfos {
+		fmt.Printf("%s\n", base64.StdEncoding.EncodeToString(asn1Ri.FullBytes))
+		ri, err := ParseRecipientInfo(asn1Ri)
+		if err == nil {
+			recInfos = append(recInfos, ri)
+		}
+	}
+	return recInfos
+}
 
-func (ed *EnvelopedData) decryptKey(keyPair tls.Certificate) (key []byte, err error) {
+func (ed *EnvelopedData) decryptKey(keyPair tls.Certificate) ([]byte, error) {
 
-	for i := range ed.RecipientInfos {
-
-		key, err = ed.RecipientInfos[i].decryptKey(keyPair)
-		if key != nil || err != ErrNoKeyFound {
-			return
+	for _, asn1Ri := range ed.RawRecipientInfos {
+		ri, err := ParseRecipientInfo(asn1Ri)
+		if err == nil {
+			key, err := ri.decryptKey(keyPair)
+			if err == nil {
+				return key, nil
+			}
 		}
 	}
 	return nil, ErrNoKeyFound
@@ -110,14 +125,21 @@ func (ed EnvelopedData) ContentInfo() (ContentInfo, error) {
 }
 
 // NewEnvelopedData creates a new EnvelopedData from the given data.
-func NewEnvelopedData(eci *EncryptedContentInfo, reciInfos []RecipientInfo) EnvelopedData {
+func NewEnvelopedData(eci *EncryptedContentInfo, reciInfos []RecipientInfo) (EnvelopedData, error) {
 	version := 0
 
 	ed := EnvelopedData{
-		Version:        version,
-		RecipientInfos: reciInfos,
-		ECI:            *eci,
+		Version:           version,
+		RawRecipientInfos: make([]asn1.RawValue, 0),
+		ECI:               *eci,
+	}
+	for _, recInfo := range reciInfos {
+		asn1RecInfo, err := recInfo.MarshalASN1RawValue()
+		if err != nil {
+			return ed, err
+		}
+		ed.RawRecipientInfos = append(ed.RawRecipientInfos, asn1RecInfo)
 	}
 
-	return ed
+	return ed, nil
 }

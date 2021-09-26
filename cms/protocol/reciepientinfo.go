@@ -10,11 +10,66 @@ import (
 	"crypto/x509/pkix"
 	"encoding/asn1"
 	"errors"
+	"fmt"
 	"log"
 	"time"
 
 	oid "github.com/bukodi/go_S-MIME/oid"
 )
+
+func unmarshalFully(b []byte, val interface{}) (err error) {
+	rest, err := asn1.Unmarshal(b, val)
+	if err != nil {
+		return err
+	}
+	if rest != nil && len(rest) > 0 {
+		return fmt.Errorf("unprocessed bytes: %v", rest)
+	}
+	return nil
+}
+
+type RecipientInfo interface {
+	decryptKey(keyPair tls.Certificate) (key []byte, err error)
+	MarshalASN1RawValue() (asn1.RawValue, error)
+}
+
+func ParseRecipientInfo(value asn1.RawValue) (RecipientInfo, error) {
+	var ktri KeyTransRecipientInfo
+	err := unmarshalFully(value.FullBytes, &ktri)
+	if err == nil {
+		if ktri.Version == 0 && ktri.Rid.IAS.SerialNumber != nil && ktri.Rid.SKI == nil {
+			return &ktri, nil
+		} else if ktri.Version == 2 && ktri.Rid.IAS.SerialNumber == nil && ktri.Rid.SKI != nil {
+			return &ktri, nil
+		}
+	}
+
+	var kari KeyAgreeRecipientInfo
+	err = unmarshalFully(value.FullBytes, &kari)
+	if err == nil && kari.Version == 3 {
+		return &kari, nil
+	}
+
+	var kekri KEKRecipientInfo
+	err = unmarshalFully(value.FullBytes, &kekri)
+	if err == nil { // TODO: Version == 4
+		return &kekri, nil
+	}
+
+	var pwri PasswordRecipientInfo
+	err = unmarshalFully(value.FullBytes, &pwri)
+	if err == nil { // TODO: Version == 0
+		return &pwri, nil
+	}
+
+	var ori OtherRecipientInfo
+	err = unmarshalFully(value.FullBytes, &ori)
+	if err == nil {
+		return &ori, nil
+	}
+
+	return nil, fmt.Errorf("cant parse recipient info")
+}
 
 //RecipientInfo ::= CHOICE {
 //	ktri KeyTransRecipientInfo,
@@ -22,24 +77,54 @@ import (
 //	kekri [2] KEKRecipientInfo,
 //	pwri [3] PasswordRecipientInfo,
 //	ori [4] OtherRecipientInfo }
-type RecipientInfo struct {
+type RecipientInfoStruct struct {
 	KTRI  KeyTransRecipientInfo `asn1:"optional"`
 	KARI  KeyAgreeRecipientInfo `asn1:"optional,tag:1"` //KeyAgreeRecipientInfo
-	KEKRI asn1.RawValue         `asn1:"optional,tag:2"`
-	PWRI  asn1.RawValue         `asn1:"optional,tag:3"`
-	ORI   asn1.RawValue         `asn1:"optional,tag:4"`
+	KEKRI KEKRecipientInfo      `asn1:"optional,tag:2"`
+	PWRI  PasswordRecipientInfo `asn1:"optional,tag:3"`
+	ORI   OtherRecipientInfo    `asn1:"optional,tag:4"`
 }
 
-func (recInfo *RecipientInfo) decryptKey(keyPair tls.Certificate) (key []byte, err error) {
+var _ RecipientInfo = &KEKRecipientInfo{}
 
-	key, err = recInfo.KTRI.decryptKey(keyPair)
-	if key != nil || (err != nil && err != ErrUnsupported) {
-		return
-	}
+type KEKRecipientInfo struct {
+	Asn1RawValue asn1.RawValue
+}
 
-	key, err = recInfo.KARI.decryptKey(keyPair)
+func (kekRI *KEKRecipientInfo) MarshalASN1RawValue() (asn1.RawValue, error) {
+	panic("implement me")
+}
 
-	return
+func (kekRI *KEKRecipientInfo) decryptKey(keyPair tls.Certificate) (key []byte, err error) {
+	panic("Implement me!")
+}
+
+var _ RecipientInfo = &PasswordRecipientInfo{}
+
+type PasswordRecipientInfo struct {
+	Asn1RawValue asn1.RawValue
+}
+
+func (pwRI *PasswordRecipientInfo) MarshalASN1RawValue() (asn1.RawValue, error) {
+	return pwRI.Asn1RawValue, nil
+}
+
+func (pwRI *PasswordRecipientInfo) decryptKey(keyPair tls.Certificate) (key []byte, err error) {
+	panic("Implement me!")
+}
+
+var _ RecipientInfo = &OtherRecipientInfo{}
+
+type OtherRecipientInfo struct {
+	Asn1RawValue asn1.RawValue
+}
+
+func (oRI *OtherRecipientInfo) MarshalASN1RawValue() (asn1.RawValue, error) {
+	return oRI.Asn1RawValue, nil
+}
+
+func (oRI *OtherRecipientInfo) decryptKey(keyPair tls.Certificate) (key []byte, err error) {
+	panic("Implement me!")
 }
 
 //KeyTransRecipientInfo ::= SEQUENCE {
@@ -47,11 +132,26 @@ func (recInfo *RecipientInfo) decryptKey(keyPair tls.Certificate) (key []byte, e
 //	rid RecipientIdentifier,
 //	keyEncryptionAlgorithm KeyEncryptionAlgorithmIdentifier,
 //	encryptedKey EncryptedKey }
+var _ RecipientInfo = &KeyTransRecipientInfo{}
+
 type KeyTransRecipientInfo struct {
 	Version                int
 	Rid                    RecipientIdentifier `asn1:"choice"`
 	KeyEncryptionAlgorithm pkix.AlgorithmIdentifier
 	EncryptedKey           []byte
+}
+
+func (ktri *KeyTransRecipientInfo) MarshalASN1RawValue() (asn1.RawValue, error) {
+	asn1Bytes, err := asn1.Marshal(ktri)
+	if err != nil {
+		return asn1.RawValue{}, err
+	}
+	var asn1RawValue asn1.RawValue
+	err = unmarshalFully(asn1Bytes, &asn1RawValue)
+	if err != nil {
+		return asn1.RawValue{}, err
+	}
+	return asn1RawValue, nil
 }
 
 func (ktri *KeyTransRecipientInfo) decryptKey(keyPair tls.Certificate) (key []byte, err error) {
@@ -120,28 +220,24 @@ type RecipientIdentifier struct {
 }
 
 // NewRecipientInfo creates RecipientInfo for giben recipient and key.
-func NewRecipientInfo(recipient *x509.Certificate, key []byte) (info RecipientInfo, err error) {
+func NewRecipientInfo(recipient *x509.Certificate, key []byte) (RecipientInfo, error) {
 
 	switch recipient.PublicKeyAlgorithm {
 	case x509.RSA:
-		var ktri KeyTransRecipientInfo
-		ktri, err = encryptKeyRSA(key, recipient)
+		ktri, err := encryptKeyRSA(key, recipient)
 		if err != nil {
-			return
+			return nil, err
 		}
-		info = RecipientInfo{KTRI: ktri}
+		return &ktri, nil
 	case x509.ECDSA:
-		var kari KeyAgreeRecipientInfo
-		kari, err = encryptKeyECDH(key, recipient)
+		kari, err := encryptKeyECDH(key, recipient)
 		if err != nil {
-			return
+			return nil, err
 		}
-		info = RecipientInfo{KARI: kari}
+		return &kari, nil
 	default:
-		err = errors.New("Public key algorithm not supported")
+		return nil, errors.New("Public key algorithm not supported")
 	}
-
-	return
 }
 
 func encryptKeyRSA(key []byte, recipient *x509.Certificate) (ktri KeyTransRecipientInfo, err error) {
@@ -196,12 +292,27 @@ var ErrUnsupportedAlgorithm = errors.New("cms: cannot decrypt data: unsupported 
 //	ukm [1] EXPLICIT UserKeyingMaterial OPTIONAL,
 //	keyEncryptionAlgorithm KeyEncryptionAlgorithmIdentifier,
 //	recipientEncryptedKeys RecipientEncryptedKeys }
+var _ RecipientInfo = &KeyAgreeRecipientInfo{}
+
 type KeyAgreeRecipientInfo struct {
 	Version                int
 	Originator             OriginatorIdentifierOrKey `asn1:"explicit,choice,tag:0"`
 	UKM                    []byte                    `asn1:"explicit,optional,tag:1"`
 	KeyEncryptionAlgorithm pkix.AlgorithmIdentifier  ``
 	RecipientEncryptedKeys []RecipientEncryptedKey   `asn1:"sequence"` //RecipientEncryptedKeys ::= SEQUENCE OF RecipientEncryptedKey
+}
+
+func (kari *KeyAgreeRecipientInfo) MarshalASN1RawValue() (asn1.RawValue, error) {
+	asn1Bytes, err := asn1.Marshal(kari)
+	if err != nil {
+		return asn1.RawValue{}, err
+	}
+	var asn1RawValue asn1.RawValue
+	err = unmarshalFully(asn1Bytes, &asn1RawValue)
+	if err != nil {
+		return asn1.RawValue{}, err
+	}
+	return asn1RawValue, nil
 }
 
 //OriginatorIdentifierOrKey ::= CHOICE {

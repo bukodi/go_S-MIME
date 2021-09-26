@@ -87,7 +87,10 @@ func (cms *CMS) Encrypt(data []byte, recipients []*x509.Certificate) (der []byte
 		reciInfos = append(reciInfos, rInfo)
 	}
 
-	ed := protocol.NewEnvelopedData(&eci, reciInfos)
+	ed, err := protocol.NewEnvelopedData(&eci, reciInfos)
+	if err != nil {
+		return
+	}
 
 	ci, err := ed.ContentInfo()
 	if err != nil {

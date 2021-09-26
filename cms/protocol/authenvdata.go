@@ -12,7 +12,7 @@ import (
 //AuthEnvelopedData ::= SEQUENCE {
 //	version CMSVersion,
 //	originatorInfo [0] IMPLICIT OriginatorInfo OPTIONAL,
-//	recipientInfos RecipientInfos,
+//	RawRecipientInfos RecipientInfos,
 //	authEncryptedContentInfo EncryptedContentInfo,
 ///	authAttrs [1] IMPLICIT AuthAttributes OPTIONAL,
 //	mac MessageAuthenticationCode,
@@ -68,7 +68,7 @@ func (ed *AuthEnvelopedData) decryptKey(keyPair tls.Certificate) (key []byte, er
 	return nil, ErrNoKeyFound
 }
 
-// NewAuthEnvelopedData creates AuthEnvelopedData from an EncryptedContentInfo with mac and given RecipientInfos.
+// NewAuthEnvelopedData creates AuthEnvelopedData from an EncryptedContentInfo with mac and given RawRecipientInfos.
 func NewAuthEnvelopedData(eci *EncryptedContentInfo, reciInfos []RecipientInfo, mac []byte) AuthEnvelopedData {
 	version := 0
 
