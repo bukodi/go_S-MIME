@@ -20,7 +20,7 @@ type Attribute struct {
 // NewAttribute creates a single-value Attribute.
 func NewAttribute(attrType asn1.ObjectIdentifier, val interface{}) (attr Attribute, err error) {
 	var rv asn1.RawValue
-	if rv, err = RawValue(val); err != nil {
+	if rv, err = asn1RawValue(val); err != nil {
 		return
 	}
 

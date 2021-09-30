@@ -144,7 +144,7 @@ func (sd *SignedData) AddSignerInfo(keypPair tls.Certificate, attrs []Attribute)
 
 	si := SignerInfo{
 		Version:            1,
-		SID:                *sidRawValue,
+		SID:                sidRawValue,
 		DigestAlgorithm:    digestAlgorithm,
 		SignedAttrs:        nil,
 		SignatureAlgorithm: signatureAlgorithm,

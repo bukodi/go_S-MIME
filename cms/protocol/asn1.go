@@ -2,24 +2,36 @@ package protocol
 
 import (
 	"encoding/asn1"
+	"fmt"
+	"strings"
 
 	asn "github.com/bukodi/go_S-MIME/asn1"
 )
 
-// RawValue marshals val and returns the asn1.RawValue
-func RawValue(val interface{}, params ...string) (rv asn1.RawValue, err error) {
-	param := ""
-	if len(params) > 0 {
-		param = params[0]
+func unmarshalFully(b []byte, val interface{}) (err error) {
+	rest, err := asn1.Unmarshal(b, val)
+	if err != nil {
+		return err
 	}
+	if rest != nil && len(rest) > 0 {
+		return fmt.Errorf("unprocessed bytes: %v", rest)
+	}
+	return nil
+}
 
+// RawValue marshals val and returns the asn1.RawValue
+func asn1RawValue(val interface{}, params ...string) (asn1.RawValue, error) {
+	param := strings.Join(params, ",")
+
+	var rv asn1.RawValue
 	var der []byte
+	var err error
 	if der, err = asn.MarshalWithParams(val, param); err != nil {
-		return
+		return rv, err
 	}
 
 	if _, err = asn.Unmarshal(der, &rv); err != nil {
-		return
+		return rv, err
 	}
-	return
+	return rv, err
 }

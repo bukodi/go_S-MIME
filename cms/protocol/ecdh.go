@@ -113,7 +113,7 @@ func encryptKeyECDH(key []byte, recipient *x509.Certificate) (kari KeyAgreeRecip
 		return
 	}
 
-	keyWrapAlgorithmIdentifier, err := RawValue(keyWrapAlgorithm.AlgorithmIdentifier())
+	keyWrapAlgorithmIdentifier, err := asn1RawValue(keyWrapAlgorithm.AlgorithmIdentifier())
 	if err != nil {
 		return
 	}

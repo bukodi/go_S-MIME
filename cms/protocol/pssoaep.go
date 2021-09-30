@@ -41,7 +41,7 @@ func newpssParameters(hash ...crypto.Hash) (param pssParameters, err error) {
 		}
 	}
 
-	hRV, err := RawValue(pkix.AlgorithmIdentifier{Algorithm: h})
+	hRV, err := asn1RawValue(pkix.AlgorithmIdentifier{Algorithm: h})
 	if err != nil {
 		return
 	}
@@ -95,7 +95,7 @@ func newPSS(hash crypto.Hash, pub *rsa.PublicKey) (signatureAlgorithm pkix.Algor
 
 	pssParam.SaltLength = (pub.N.BitLen()+7)/8 - 2 - hash.Size() // https://golang.org/src/crypto/rsa/pss.go?s=6982:7095#L239
 
-	paramRV, err := RawValue(pssParam)
+	paramRV, err := asn1RawValue(pssParam)
 	if err != nil {
 		return
 	}
@@ -123,7 +123,7 @@ func newRSAESOAEPparams(hash ...crypto.Hash) (param RSAESOAEPparams, err error) 
 		return
 	}
 
-	nullOctetString, err := RawValue([]byte{})
+	nullOctetString, err := asn1RawValue([]byte{})
 
 	var h asn1.ObjectIdentifier
 
@@ -137,7 +137,7 @@ func newRSAESOAEPparams(hash ...crypto.Hash) (param RSAESOAEPparams, err error) 
 		}
 	}
 
-	hRV, err := RawValue(pkix.AlgorithmIdentifier{Algorithm: h})
+	hRV, err := asn1RawValue(pkix.AlgorithmIdentifier{Algorithm: h})
 
 	param = RSAESOAEPparams{pkix.AlgorithmIdentifier{Algorithm: h, Parameters: asn1.NullRawValue},
 		pkix.AlgorithmIdentifier{Algorithm: oidMGF1, Parameters: hRV},

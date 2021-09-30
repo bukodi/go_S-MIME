@@ -38,29 +38,22 @@ type SignerIdentifier struct {
 	SKI []byte                `asn1:"optional,tag:0"`
 }
 
-func (sid SignerIdentifier) ToASN1RawValue() (*asn1.RawValue, error) {
-	var asn1Bytes []byte
-	var err error
+func (sid SignerIdentifier) ToASN1RawValue() (asn1.RawValue, error) {
 	if sid.IAS.Issuer.Bytes != nil && sid.SKI == nil {
-		asn1Bytes, err = asn1.Marshal(sid.IAS)
+		rv, err := asn1RawValue(sid.IAS)
 		if err != nil {
-			return nil, err
+			return rv, err
 		}
+		return rv, nil
 	} else if sid.IAS.Issuer.Bytes == nil && sid.SKI != nil {
-		asn1Bytes, err = asn1.Marshal(sid.SKI)
+		rv, err := asn1RawValue(sid.SKI)
 		if err != nil {
-			return nil, err
+			return rv, err
 		}
+		return rv, nil
+	} else {
+		return asn1.RawValue{}, fmt.Errorf("invalid case")
 	}
-	var asn1RawValue asn1.RawValue
-	rest, err := asn1.Unmarshal(asn1Bytes, &asn1RawValue)
-	if err != nil {
-		return nil, err
-	}
-	if rest != nil && len(rest) > 0 {
-		return nil, fmt.Errorf("unprocessed bytes: %v", rest)
-	}
-	return &asn1RawValue, nil
 }
 
 // version is the syntax version number.  If the SignerIdentifier is
