@@ -172,7 +172,6 @@ func TestSignVerify(t *testing.T) {
 }
 
 func TestEncryptOpenSSL(t *testing.T) {
-
 	if skipOpenssl {
 		return
 	}
@@ -183,14 +182,13 @@ func TestEncryptOpenSSL(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
+	//fmt.Printf(base64.StdEncoding.EncodeToString(der))
 
 	cms, err := New(keypair)
 	plain, err := cms.Decrypt(der)
 	if err != nil {
 		t.Error(err)
-	}
-
-	if !bytes.Equal(message, plain) {
+	} else if !bytes.Equal(message, plain) {
 		t.Fatal("Encryption and decryption are not inverse")
 	}
 

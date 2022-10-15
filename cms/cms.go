@@ -14,7 +14,7 @@ import (
 	"github.com/bukodi/go_S-MIME/timestamp"
 )
 
-// CMS is an instance of cms to en-/decrypt and sign/verfiy CMS data
+// CMS is an instance of cms to en-/decrypt and sign/verify CMS data
 // with the given keyPairs and options.
 type CMS struct {
 	Intermediate, roots        *x509.CertPool
@@ -55,7 +55,7 @@ func New(cert ...tls.Certificate) (cms *CMS, err error) {
 	return
 }
 
-// AddAttribute adds a attribute to signedAttrs which will be used for signing
+// AddAttribute adds an attribute to signedAttrs which will be used for signing
 func (cms *CMS) AddAttribute(attrType asn1.ObjectIdentifier, val interface{}) (err error) {
 
 	attr, err := protocol.NewAttribute(attrType, val)
@@ -119,7 +119,10 @@ func (cms *CMS) AuthEncrypt(data []byte, recipients []*x509.Certificate) (der []
 		reciInfos = append(reciInfos, rInfo)
 	}
 
-	ed := protocol.NewAuthEnvelopedData(&eci, reciInfos, mac)
+	ed, err := protocol.NewAuthEnvelopedData(&eci, reciInfos, mac)
+	if err != nil {
+		return
+	}
 
 	ci, err := ed.ContentInfo()
 	if err != nil {
@@ -163,7 +166,7 @@ func (cms *CMS) Decrypt(contentInfo []byte) (plain []byte, err error) {
 	return
 }
 
-// Sign signs the data and returns returns DER-encoded ASN.1 ContentInfo.
+// Sign signs the data and returns DER-encoded ASN.1 ContentInfo.
 func (cms *CMS) Sign(data []byte, detachedSignature ...bool) (der []byte, err error) {
 
 	enci, err := protocol.NewDataEncapsulatedContentInfo(data)
@@ -202,7 +205,7 @@ func (cms *CMS) Sign(data []byte, detachedSignature ...bool) (der []byte, err er
 	return ci.DER()
 }
 
-// Verify verifies the signature in contentInfo and returns returns DER-encoded ASN.1 ContentInfo.
+// Verify verifies the signature in contentInfo and returns DER-encoded ASN.1 ContentInfo.
 func (cms *CMS) Verify(contentInfo []byte) (chains [][][]*x509.Certificate, err error) {
 	ci, err := protocol.ParseContentInfo(contentInfo)
 	if err != nil {
@@ -219,7 +222,7 @@ func (cms *CMS) Verify(contentInfo []byte) (chains [][][]*x509.Certificate, err 
 	return
 }
 
-// VerifyDetached verifies the detached signature of msg in contentInfo and returns returns DER-encoded ASN.1 ContentInfo.
+// VerifyDetached verifies the detached signature of msg in contentInfo and returns DER-encoded ASN.1 ContentInfo.
 func (cms *CMS) VerifyDetached(contentInfo, msg []byte) (chains [][][]*x509.Certificate, err error) {
 
 	ci, err := protocol.ParseContentInfo(contentInfo)

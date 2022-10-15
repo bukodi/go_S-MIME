@@ -3,15 +3,11 @@ package protocol
 import (
 	"crypto/tls"
 	"encoding/asn1"
-	"encoding/base64"
-	"fmt"
 	"log"
 
 	asn "github.com/bukodi/go_S-MIME/asn1"
 	"github.com/bukodi/go_S-MIME/oid"
 )
-
-const dummy = asn.TagBitString
 
 //EnvelopedData ::= SEQUENCE {
 //	version CMSVersion,
@@ -59,24 +55,21 @@ func (ed *EnvelopedData) Decrypt(keyPairs []tls.Certificate) (plain []byte, err 
 func (ed *EnvelopedData) RecipientInfos() []RecipientInfo {
 	recInfos := make([]RecipientInfo, 0)
 	for _, asn1Ri := range ed.RawRecipientInfos {
-		fmt.Printf("%s\n", base64.StdEncoding.EncodeToString(asn1Ri.FullBytes))
 		ri, err := ParseRecipientInfo(asn1Ri)
 		if err == nil {
 			recInfos = append(recInfos, ri)
+		} else {
+			// TODO: log error gracefully
 		}
 	}
 	return recInfos
 }
 
 func (ed *EnvelopedData) decryptKey(keyPair tls.Certificate) ([]byte, error) {
-
-	for _, asn1Ri := range ed.RawRecipientInfos {
-		ri, err := ParseRecipientInfo(asn1Ri)
+	for _, ri := range ed.RecipientInfos() {
+		key, err := ri.decryptKey(keyPair)
 		if err == nil {
-			key, err := ri.decryptKey(keyPair)
-			if err == nil {
-				return key, nil
-			}
+			return key, nil
 		}
 	}
 	return nil, ErrNoKeyFound

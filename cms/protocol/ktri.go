@@ -28,7 +28,7 @@ type KeyTransRecipientInfo struct {
 }
 
 func (ktri *KeyTransRecipientInfo) MarshalASN1RawValue() (asn1.RawValue, error) {
-	asn1Bytes, err := asn1.Marshal(ktri)
+	asn1Bytes, err := asn1.Marshal(*ktri)
 	if err != nil {
 		return asn1.RawValue{}, err
 	}

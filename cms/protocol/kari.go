@@ -24,7 +24,7 @@ type KeyAgreeRecipientInfo struct {
 }
 
 func (kari *KeyAgreeRecipientInfo) MarshalASN1RawValue() (asn1.RawValue, error) {
-	asn1Bytes, err := asn1.Marshal(kari)
+	asn1Bytes, err := asn1.Marshal(*kari)
 	if err != nil {
 		return asn1.RawValue{}, err
 	}
