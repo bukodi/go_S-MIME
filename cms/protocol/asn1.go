@@ -4,8 +4,6 @@ import (
 	"encoding/asn1"
 	"fmt"
 	"strings"
-
-	asn "github.com/bukodi/go_S-MIME/asn1"
 )
 
 func unmarshalFully(b []byte, val interface{}) (err error) {
@@ -26,11 +24,11 @@ func asn1RawValue(val interface{}, params ...string) (asn1.RawValue, error) {
 	var rv asn1.RawValue
 	var der []byte
 	var err error
-	if der, err = asn.MarshalWithParams(val, param); err != nil {
+	if der, err = asn1.MarshalWithParams(val, param); err != nil {
 		return rv, err
 	}
 
-	if _, err = asn.Unmarshal(der, &rv); err != nil {
+	if _, err = asn1.Unmarshal(der, &rv); err != nil {
 		return rv, err
 	}
 	return rv, err

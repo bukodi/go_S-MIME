@@ -5,7 +5,6 @@ import (
 	"encoding/asn1"
 	"log"
 
-	asn "github.com/bukodi/go_S-MIME/asn1"
 	"github.com/bukodi/go_S-MIME/oid"
 )
 
@@ -96,7 +95,7 @@ func (ci ContentInfo) EnvelopedDataContent() (*EnvelopedData, error) {
 func (ed EnvelopedData) ContentInfo() (ContentInfo, error) {
 	nilCI := *new(ContentInfo)
 
-	der, err := asn.Marshal(ed)
+	der, err := asn1.Marshal(ed)
 	if err != nil {
 		log.Fatal(err)
 	}

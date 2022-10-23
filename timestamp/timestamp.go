@@ -4,9 +4,9 @@ package timestamp
 import (
 	"crypto"
 	"crypto/x509"
+	"encoding/asn1"
 	"time"
 
-	"github.com/bukodi/go_S-MIME/asn1"
 	cms "github.com/bukodi/go_S-MIME/cms/protocol"
 	"github.com/bukodi/go_S-MIME/oid"
 )

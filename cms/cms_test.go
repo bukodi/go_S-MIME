@@ -9,6 +9,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"encoding/base64"
 	"fmt"
 	"strings"
 	"testing"
@@ -182,7 +183,7 @@ func TestEncryptOpenSSL(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	//fmt.Printf(base64.StdEncoding.EncodeToString(der))
+	fmt.Printf("\n%s\n", base64.StdEncoding.EncodeToString(der))
 
 	cms, err := New(keypair)
 	plain, err := cms.Decrypt(der)
