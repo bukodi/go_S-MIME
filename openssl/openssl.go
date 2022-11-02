@@ -14,7 +14,7 @@ import (
 )
 
 // SMIME is the commpand used for openssl smime, can be replaces with cms
-var SMIME = "smime"
+var SMIME = "cms"
 
 //Encrypt a message with openssl
 func Encrypt(in []byte, cert *x509.Certificate, opts ...string) (der []byte, err error) {

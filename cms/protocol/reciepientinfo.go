@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/asn1"
+	"encoding/base64"
 	"errors"
 	"fmt"
 )
@@ -14,41 +15,47 @@ type RecipientInfo interface {
 }
 
 func ParseRecipientInfo(value asn1.RawValue) (RecipientInfo, error) {
-	var ktri KeyTransRecipientInfo
-	err := unmarshalFully(value.FullBytes, &ktri)
-	if err == nil {
-		if ktri.Version == 0 && ktri.Rid.IAS.SerialNumber != nil && ktri.Rid.SKI == nil {
-			return &ktri, nil
-		} else if ktri.Version == 2 && ktri.Rid.IAS.SerialNumber == nil && ktri.Rid.SKI != nil {
-			return &ktri, nil
+	if value.Class == asn1.ClassUniversal && value.Tag == asn1.TagSequence {
+		var ktri KeyTransRecipientInfo
+		if err := unmarshalFully(value.Bytes, &ktri); err != nil {
+			return nil, err
 		}
+		return &ktri, nil
 	}
 
-	var kari KeyAgreeRecipientInfo
-	err = unmarshalFully(value.FullBytes, &kari)
-	if err == nil && kari.Version == 3 {
+	if value.Class == asn1.ClassContextSpecific && value.Tag == 1 {
+		var kari KeyAgreeRecipientInfo
+		if err := unmarshalFully(value.Bytes, &kari); err != nil {
+			return nil, err
+		}
 		return &kari, nil
 	}
 
-	var kekri KEKRecipientInfo
-	err = unmarshalFully(value.FullBytes, &kekri)
-	if err == nil && kekri.Version == 4 {
+	if value.Class == asn1.ClassContextSpecific && value.Tag == 2 {
+		var kekri KEKRecipientInfo
+		if err := unmarshalFully(value.FullBytes, &kekri); err != nil {
+			return nil, err
+		}
 		return &kekri, nil
 	}
 
-	var pwri PasswordRecipientInfo
-	err = unmarshalFully(value.FullBytes, &pwri)
-	if err == nil && pwri.Version == 0 {
+	if value.Class == asn1.ClassContextSpecific && value.Tag == 3 {
+		var pwri PasswordRecipientInfo
+		if err := unmarshalFully(value.FullBytes, &pwri); err != nil {
+			return nil, err
+		}
 		return &pwri, nil
 	}
 
-	var ori OtherRecipientInfo
-	err = unmarshalFully(value.FullBytes, &ori)
-	if err == nil {
+	if value.Class == asn1.ClassContextSpecific && value.Tag == 4 {
+		var ori OtherRecipientInfo
+		if err := unmarshalFully(value.FullBytes, &ori); err != nil {
+			return nil, err
+		}
 		return &ori, nil
 	}
 
-	return nil, fmt.Errorf("cant parse recipient info")
+	return nil, fmt.Errorf("cant parse recipient info: \n%s\n", base64.StdEncoding.EncodeToString(value.FullBytes))
 }
 
 // NewRecipientInfo creates RecipientInfo for giben recipient and key.

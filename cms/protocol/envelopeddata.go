@@ -3,6 +3,7 @@ package protocol
 import (
 	"crypto/tls"
 	"encoding/asn1"
+	"fmt"
 	"log"
 
 	"github.com/bukodi/go_S-MIME/oid"
@@ -17,7 +18,7 @@ import (
 type EnvelopedData struct {
 	Version           int
 	OriginatorInfo    asn1.RawValue        `asn1:"optional,tag:0"`
-	RawRecipientInfos []asn1.RawValue      `asn1:"set,choice"`
+	RawRecipientInfos []asn1.RawValue      `asn1:"set"`
 	ECI               EncryptedContentInfo ``
 	UnprotectedAttrs  []Attribute          `asn1:"set,optional,tag:1"`
 }
@@ -52,16 +53,17 @@ func (ed *EnvelopedData) Decrypt(keyPairs []tls.Certificate) (plain []byte, err 
 	return
 }
 func (ed *EnvelopedData) RecipientInfos() []RecipientInfo {
-	recInfos := make([]RecipientInfo, 0)
+	parsedRecipientInfos := make([]RecipientInfo, 0)
 	for _, asn1Ri := range ed.RawRecipientInfos {
 		ri, err := ParseRecipientInfo(asn1Ri)
 		if err == nil {
-			recInfos = append(recInfos, ri)
+			parsedRecipientInfos = append(parsedRecipientInfos, ri)
 		} else {
-			// TODO: log error gracefully
+			// log error gracefully
+			fmt.Printf("%+v", err)
 		}
 	}
-	return recInfos
+	return parsedRecipientInfos
 }
 
 func (ed *EnvelopedData) decryptKey(keyPair tls.Certificate) ([]byte, error) {
