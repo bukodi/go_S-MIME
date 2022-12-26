@@ -8,11 +8,11 @@ import (
 
 var _ RecipientInfo = &PasswordRecipientInfo{}
 
-//PasswordRecipientInfo ::= SEQUENCE {
-//version CMSVersion,   -- Always set to 0
-//keyDerivationAlgorithm [0] KeyDerivationAlgorithmIdentifier OPTIONAL,
-//keyEncryptionAlgorithm KeyEncryptionAlgorithmIdentifier,
-//encryptedKey EncryptedKey }
+// PasswordRecipientInfo ::= SEQUENCE {
+// version CMSVersion,   -- Always set to 0
+// keyDerivationAlgorithm [0] KeyDerivationAlgorithmIdentifier OPTIONAL,
+// keyEncryptionAlgorithm KeyEncryptionAlgorithmIdentifier,
+// encryptedKey EncryptedKey }
 type PasswordRecipientInfo struct {
 	Version                int
 	KeyDerivationAlgorithm pkix.AlgorithmIdentifier `asn1:"optional"`

@@ -13,21 +13,25 @@ import (
 	"log"
 )
 
-//KeyTransRecipientInfo ::= SEQUENCE {
-//	version CMSVersion,  -- always set to 0 or 2
-//	rid RecipientIdentifier,
-//	keyEncryptionAlgorithm KeyEncryptionAlgorithmIdentifier,
-//	encryptedKey EncryptedKey }
+//	KeyTransRecipientInfo ::= SEQUENCE {
+//		version CMSVersion,  -- always set to 0 or 2
+//		rid RecipientIdentifier,
+//		keyEncryptionAlgorithm KeyEncryptionAlgorithmIdentifier,
+//		encryptedKey EncryptedKey }
 var _ RecipientInfo = &KeyTransRecipientInfo{}
 
 type KeyTransRecipientInfo struct {
 	Version                int
-	Rid                    RecipientIdentifier `asn1:"choice"`
+	RawRid                 asn1.RawValue
 	KeyEncryptionAlgorithm pkix.AlgorithmIdentifier
 	EncryptedKey           []byte
 }
 
 func (ktri *KeyTransRecipientInfo) MarshalASN1RawValue() (asn1.RawValue, error) {
+	var err error
+	if err != nil {
+		return asn1.RawValue{}, err
+	}
 	asn1Bytes, err := asn1.Marshal(*ktri)
 	if err != nil {
 		return asn1.RawValue{}, err
@@ -65,13 +69,18 @@ func (ktri *KeyTransRecipientInfo) decryptKey(keyPair tls.Certificate) (key []by
 		}
 	}
 
+	var rId RecipientIdentifier
+	if err := rId.Unmarshal(ktri.RawRid); err != nil {
+		return nil, err
+	}
+
 	//version is the syntax version number.  If the SignerIdentifier is
 	//the CHOICE issuerAndSerialNumber, then the version MUST be 1.  If
 	//the SignerIdentifier is subjectKeyIdentifier, then the version
 	//MUST be 3.
 	switch ktri.Version {
 	case 0:
-		if ias.Equal(ktri.Rid.IAS) {
+		if ias.Equal(*rId.IAS) {
 			if ktri.KeyEncryptionAlgorithm.Algorithm.Equal(certPubAlg) || pkcs15CertwithOAEP {
 
 				decrypter := keyPair.PrivateKey.(crypto.Decrypter)
@@ -81,7 +90,7 @@ func (ktri *KeyTransRecipientInfo) decryptKey(keyPair tls.Certificate) (key []by
 			log.Println("Key encrytion algorithm not matching")
 		}
 	case 2:
-		if bytes.Equal(ski, ktri.Rid.SKI) {
+		if bytes.Equal(ski, rId.SKI) {
 			if ktri.KeyEncryptionAlgorithm.Algorithm.Equal(certPubAlg) || pkcs15CertwithOAEP {
 
 				decrypter := keyPair.PrivateKey.(crypto.Decrypter)
@@ -97,14 +106,6 @@ func (ktri *KeyTransRecipientInfo) decryptKey(keyPair tls.Certificate) (key []by
 	return nil, nil
 }
 
-//RecipientIdentifier ::= CHOICE {
-//	issuerAndSerialNumber IssuerAndSerialNumber,
-//	subjectKeyIdentifier [0] ExtensionSubjectKeyIdentifier }
-type RecipientIdentifier struct {
-	IAS IssuerAndSerialNumber `asn1:"optional"`
-	SKI []byte                `asn1:"optional,tag:0"`
-}
-
 func encryptKeyRSA(key []byte, recipient *x509.Certificate) (ktri KeyTransRecipientInfo, err error) {
 	ktri.Version = 0 //issuerAndSerialNumber
 
@@ -112,11 +113,17 @@ func encryptKeyRSA(key []byte, recipient *x509.Certificate) (ktri KeyTransRecipi
 	case 0:
 		ias, err := NewIssuerAndSerialNumber(recipient)
 		if err != nil {
-			log.Fatal(err)
+			return ktri, err
 		}
-		ktri.Rid.IAS = ias
+		rId := RecipientIdentifier{
+			IAS: &ias,
+		}
+		ktri.RawRid, err = rId.Marshal()
 	case 2:
-		ktri.Rid.SKI = recipient.SubjectKeyId
+		rId := RecipientIdentifier{
+			SKI: recipient.SubjectKeyId,
+		}
+		ktri.RawRid, err = rId.Marshal()
 	}
 
 	if pub := recipient.PublicKey.(*rsa.PublicKey); pub != nil {

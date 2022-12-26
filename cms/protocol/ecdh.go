@@ -65,7 +65,8 @@ func encryptKeyECDH(key []byte, recipient *x509.Certificate) (kari KeyAgreeRecip
 	rand.Read(kari.UKM)
 
 	kari.Version = 3
-	kari.Originator.OriginatorKey.Algorithm = pkix.AlgorithmIdentifier{Algorithm: oid.ECPublicKey}
+	var oriId OriginatorIdentifierOrKey
+	oriId.OriginatorKey.Algorithm = pkix.AlgorithmIdentifier{Algorithm: oid.ECPublicKey}
 
 	// check recipient key
 
@@ -88,7 +89,7 @@ func encryptKeyECDH(key []byte, recipient *x509.Certificate) (kari KeyAgreeRecip
 	}
 
 	ephPubKey := elliptic.Marshal(pubKey.Curve, x, y)
-	kari.Originator.OriginatorKey.PublicKey = asn1.BitString{Bytes: ephPubKey, BitLength: len(ephPubKey) * 8}
+	oriId.OriginatorKey.PublicKey = asn1.BitString{Bytes: ephPubKey, BitLength: len(ephPubKey) * 8}
 
 	sharedSecret := ECDHsharedSecret(pubKey.Curve, priv, pubKey.X, pubKey.Y)
 
@@ -122,17 +123,30 @@ func encryptKeyECDH(key []byte, recipient *x509.Certificate) (kari KeyAgreeRecip
 		Parameters: keyWrapAlgorithmIdentifier}
 
 	ias, err := NewIssuerAndSerialNumber(recipient)
-	karID := KeyAgreeRecipientIdentifier{IAS: ias}
+	if err != nil {
+		return
+	}
+	var karID KeyAgreeRecipientIdentifier
+	karID.IAS = &ias
 
-	kari.RecipientEncryptedKeys = append(kari.RecipientEncryptedKeys, RecipientEncryptedKey{RID: karID, EncryptedKey: encKey})
+	rawKarId, err := karID.Marshal()
+	if err != nil {
+		return
+	}
 
+	kari.RecipientEncryptedKeys = append(kari.RecipientEncryptedKeys, RecipientEncryptedKey{RawRID: rawKarId, EncryptedKey: encKey})
+
+	kari.RawOriginator, err = oriId.Marshal()
+	if err != nil {
+		return
+	}
 	return
 }
 
-// ECCCMSSharedInfo ECC-CMS-SharedInfo ::= SEQUENCE {
-//	keyInfo         AlgorithmIdentifier,
-//	entityUInfo [0] EXPLICIT OCTET STRING OPTIONAL,
-//	suppPubInfo [2] EXPLICIT OCTET STRING  }
+//	ECCCMSSharedInfo ECC-CMS-SharedInfo ::= SEQUENCE {
+//		keyInfo         AlgorithmIdentifier,
+//		entityUInfo [0] EXPLICIT OCTET STRING OPTIONAL,
+//		suppPubInfo [2] EXPLICIT OCTET STRING  }
 type ECCCMSSharedInfo struct {
 	KeyInfo     pkix.AlgorithmIdentifier
 	EntityUInfo []byte `asn1:"optional,explicit,tag:0"`
@@ -148,7 +162,12 @@ func (kari *KeyAgreeRecipientInfo) decryptKey(keyPair tls.Certificate) (key []by
 		return
 	}
 
-	if !kari.Originator.OriginatorKey.Algorithm.Algorithm.Equal(oid.ECPublicKey) {
+	var oriIdOrKey OriginatorIdentifierOrKey
+	if err := oriIdOrKey.Unmarshal(kari.RawOriginator); err != nil {
+		return nil, err
+	}
+
+	if !oriIdOrKey.OriginatorKey.Algorithm.Algorithm.Equal(oid.ECPublicKey) {
 		err = errors.New("Orginator key algorithm not supported")
 		return
 	}
@@ -159,7 +178,7 @@ func (kari *KeyAgreeRecipientInfo) decryptKey(keyPair tls.Certificate) (key []by
 		return
 	}
 
-	x, y := elliptic.Unmarshal(pubKey.Curve, kari.Originator.OriginatorKey.PublicKey.Bytes)
+	x, y := elliptic.Unmarshal(pubKey.Curve, oriIdOrKey.OriginatorKey.PublicKey.Bytes)
 
 	// genrate ephemeral public key and key encryption key
 
@@ -205,9 +224,14 @@ func (kari *KeyAgreeRecipientInfo) decryptKey(keyPair tls.Certificate) (key []by
 		return
 	}
 
-	for i := range kari.RecipientEncryptedKeys {
-		if kari.RecipientEncryptedKeys[i].RID.IAS.Equal(ias) {
-			key, err = keyWrapAlgorithm.UnWrap(kari.RecipientEncryptedKeys[i].EncryptedKey)
+	for _, rEncKey := range kari.RecipientEncryptedKeys {
+		var rId KeyAgreeRecipientIdentifier
+		if err = rId.Unmarshal(rEncKey.RawRID); err != nil {
+			return
+		}
+
+		if rId.IAS != nil && rId.IAS.Equal(ias) {
+			key, err = keyWrapAlgorithm.UnWrap(rEncKey.EncryptedKey)
 			return
 		}
 	}

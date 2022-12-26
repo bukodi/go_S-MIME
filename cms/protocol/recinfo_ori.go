@@ -7,9 +7,9 @@ import (
 
 var _ RecipientInfo = &OtherRecipientInfo{}
 
-//OtherRecipientInfo ::= SEQUENCE {
-//oriType OBJECT IDENTIFIER,
-//oriValue ANY DEFINED BY oriType }
+// OtherRecipientInfo ::= SEQUENCE {
+// oriType OBJECT IDENTIFIER,
+// oriValue ANY DEFINED BY oriType }
 type OtherRecipientInfo struct {
 	OriType  asn1.ObjectIdentifier
 	OriValue asn1.RawValue

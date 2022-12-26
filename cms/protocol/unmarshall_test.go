@@ -3,6 +3,7 @@ package protocol
 import (
 	"encoding/asn1"
 	"encoding/base64"
+	"encoding/hex"
 	"fmt"
 	"sync"
 	"testing"
@@ -54,4 +55,55 @@ func TestUnmarshall(t *testing.T) {
 	}()
 
 	wg.Wait()
+}
+
+func TestUnmarshalKTRI(t *testing.T) {
+	ktriFullBytes, _ := hex.DecodeString(`30820183020100306b3054310b3009060355040613024855310e300c060355040a0c054e6f726567310d300b060355040b0c04546573743126302406035504030c1d4e6f72656720496e7465726e616c2054657374204d534341203230313702131a0000003081023349714e04e0000000000030300d06092a864886f70d01010105000482010045b394285a25da97e66177a535b22596751b617df42da2178d3737db4d56698f96bf3223fd3fb9f77e98cab1bd36e59b3ac9b30e1b096433cee8c2b23a7aa46a190b76bf37709614be8fc017a66a4ab2b01e1a7606a9673204c07fcf4a879b21364c3e2d8ee978cc684e17412c6b29fea3a7d423022ab09363d33a8b07c55cedcd5ce404031319e70cee356cb1afadaf87cbf4d3c932a460b9f7a974dca3cbf3b9743028684531a3bbe13357ee49218fab5a5789911e686d12735c1a88af0ede01a8862a024c350e854942197713481b50a5bf192b16cdb9d6890315f20d329a23b6d65cafc95cd2c23e4ed4aae951d63b2719c5aea8570be0204dcf18b57e17`)
+
+	//ridFullBytes := ktriFullBytes[7 : 7+109]
+	//t.Logf("rId full bytes:\n%s\n", hex.EncodeToString(ridFullBytes))
+
+	var ktri KeyTransRecipientInfo
+
+	rest, err := asn1.Unmarshal(ktriFullBytes, &ktri)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(rest) > 0 {
+		t.Fatalf("Rest: %s", hex.EncodeToString(rest))
+	}
+
+}
+
+func TestUnmarshalRecipientIdentifier(t *testing.T) {
+	var s []byte
+	t.Logf("len of s : %d", len(s))
+
+	ridFullBytes, _ := hex.DecodeString(`306b3054310b3009060355040613024855310e300c060355040a0c054e6f726567310d300b060355040b0c04546573743126302406035504030c1d4e6f72656720496e7465726e616c2054657374204d534341203230313702131a0000003081023349714e04e0000000000030`)
+
+	var rawValue asn1.RawValue
+	rest, err := asn1.Unmarshal(ridFullBytes, &rawValue)
+	if err != nil {
+		t.Error(err)
+	}
+	if len(rest) > 0 {
+		t.Errorf("Rest: %s", hex.EncodeToString(rest))
+	}
+	var rId RecipientIdentifier
+	if err := rId.Unmarshal(rawValue); err != nil {
+		t.Errorf("%#v", err)
+	}
+	t.Logf("ias:%v, ski:%v", rId.IAS, rId.SKI)
+
+	var ias IssuerAndSerialNumber
+	rest, err = asn1.UnmarshalWithParams(ridFullBytes, &ias, "optional")
+	if err != nil {
+		t.Error(err)
+	} else {
+		t.Logf("IssuerAndSerialNumber = %#v", ias)
+	}
+	if len(rest) > 0 {
+		t.Errorf("Rest: %s", hex.EncodeToString(rest))
+	}
+
 }

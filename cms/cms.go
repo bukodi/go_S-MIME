@@ -161,6 +161,8 @@ func (cms *CMS) Decrypt(contentInfo []byte) (plain []byte, err error) {
 		return
 	}
 
+	ri := ed.RecipientInfos()
+	_ = ri
 	plain, err = ed.Decrypt(cms.keyPairs)
 
 	return

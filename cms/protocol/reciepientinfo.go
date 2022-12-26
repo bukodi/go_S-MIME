@@ -15,9 +15,10 @@ type RecipientInfo interface {
 }
 
 func ParseRecipientInfo(value asn1.RawValue) (RecipientInfo, error) {
+
 	if value.Class == asn1.ClassUniversal && value.Tag == asn1.TagSequence {
 		var ktri KeyTransRecipientInfo
-		if err := unmarshalFully(value.Bytes, &ktri); err != nil {
+		if err := unmarshalFully(value.FullBytes, &ktri); err != nil {
 			return nil, err
 		}
 		return &ktri, nil
@@ -25,7 +26,7 @@ func ParseRecipientInfo(value asn1.RawValue) (RecipientInfo, error) {
 
 	if value.Class == asn1.ClassContextSpecific && value.Tag == 1 {
 		var kari KeyAgreeRecipientInfo
-		if err := unmarshalFully(value.Bytes, &kari); err != nil {
+		if err := unmarshalFullyWithParams(value.FullBytes, &kari, "tag:1"); err != nil {
 			return nil, err
 		}
 		return &kari, nil
@@ -33,7 +34,7 @@ func ParseRecipientInfo(value asn1.RawValue) (RecipientInfo, error) {
 
 	if value.Class == asn1.ClassContextSpecific && value.Tag == 2 {
 		var kekri KEKRecipientInfo
-		if err := unmarshalFully(value.FullBytes, &kekri); err != nil {
+		if err := unmarshalFullyWithParams(value.FullBytes, &kekri, "tag:2"); err != nil {
 			return nil, err
 		}
 		return &kekri, nil
@@ -41,7 +42,7 @@ func ParseRecipientInfo(value asn1.RawValue) (RecipientInfo, error) {
 
 	if value.Class == asn1.ClassContextSpecific && value.Tag == 3 {
 		var pwri PasswordRecipientInfo
-		if err := unmarshalFully(value.FullBytes, &pwri); err != nil {
+		if err := unmarshalFullyWithParams(value.FullBytes, &pwri, "tag:3"); err != nil {
 			return nil, err
 		}
 		return &pwri, nil
@@ -49,7 +50,7 @@ func ParseRecipientInfo(value asn1.RawValue) (RecipientInfo, error) {
 
 	if value.Class == asn1.ClassContextSpecific && value.Tag == 4 {
 		var ori OtherRecipientInfo
-		if err := unmarshalFully(value.FullBytes, &ori); err != nil {
+		if err := unmarshalFullyWithParams(value.FullBytes, &ori, "tag:2"); err != nil {
 			return nil, err
 		}
 		return &ori, nil

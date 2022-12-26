@@ -11,7 +11,7 @@ import (
 func TestMarshalUnmarshalKTRI(t *testing.T) {
 	ktri := KeyTransRecipientInfo{
 		Version: 0,
-		Rid:     RecipientIdentifier{},
+		//Rid:     RecipientIdentifier{},
 		KeyEncryptionAlgorithm: pkix.AlgorithmIdentifier{
 			Algorithm: oid.PublicKeyAlgorithmRSAESOAEP,
 		},

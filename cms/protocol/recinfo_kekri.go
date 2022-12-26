@@ -7,21 +7,21 @@ import (
 	"time"
 )
 
-//KEKIdentifier ::= SEQUENCE {
-//keyIdentifier OCTET STRING,
-//date GeneralizedTime OPTIONAL,
-//other OtherKeyAttribute OPTIONAL }
+// KEKIdentifier ::= SEQUENCE {
+// keyIdentifier OCTET STRING,
+// date GeneralizedTime OPTIONAL,
+// other OtherKeyAttribute OPTIONAL }
 type KEKIdentifier struct {
 	KeyIdentifier []byte
 	Date          time.Time         `asn1:"optional"`
 	Other         OtherKeyAttribute `asn1:"optional"`
 }
 
-//KEKRecipientInfo ::= SEQUENCE {
-//version CMSVersion,  -- always set to 4
-//kekid KEKIdentifier,
-//keyEncryptionAlgorithm KeyEncryptionAlgorithmIdentifier,
-//encryptedKey EncryptedKey }
+// KEKRecipientInfo ::= SEQUENCE {
+// version CMSVersion,  -- always set to 4
+// kekid KEKIdentifier,
+// keyEncryptionAlgorithm KeyEncryptionAlgorithmIdentifier,
+// encryptedKey EncryptedKey }
 type KEKRecipientInfo struct {
 	Version                int
 	KEKId                  KEKIdentifier
