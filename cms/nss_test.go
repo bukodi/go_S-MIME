@@ -4,10 +4,12 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	_ "embed"
+	"os"
 	"testing"
 )
 
-////go:embed testdata/csabiGenerated.p7m
+// //go:embed testdata/csabiGenerated.p7m
+//
 //go:embed testdata/opensslGenerated.p7m
 var testMsg []byte
 
@@ -26,14 +28,22 @@ func init() {
 }
 
 func readRecipient(pkcs8Path string, certPath string) *tls.Certificate {
+	keyBytes, err := os.ReadFile(pkcs8Path)
+	if err != nil {
+		panic(err)
+	}
+	certBytes, err := os.ReadFile(certPath)
+	if err != nil {
+		panic(err)
+	}
 	var recipient tls.Certificate
-	if _, err := x509.ParseCertificate(eccCert); err != nil {
+	if _, err := x509.ParseCertificate(certBytes); err != nil {
 		panic(err)
 	} else {
-		recipient.Certificate = [][]byte{eccCert}
+		recipient.Certificate = [][]byte{certBytes}
 	}
 
-	if pk, err := x509.ParsePKCS8PrivateKey(eccPrivKey); err != nil {
+	if pk, err := x509.ParsePKCS8PrivateKey(keyBytes); err != nil {
 		panic(err)
 	} else {
 		recipient.PrivateKey = pk

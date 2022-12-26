@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/asn1"
+	"encoding/hex"
 	"fmt"
 	"log"
 	"time"
@@ -161,8 +162,53 @@ func (cms *CMS) Decrypt(contentInfo []byte) (plain []byte, err error) {
 		return
 	}
 
-	ri := ed.RecipientInfos()
-	_ = ri
+	fmt.Printf("--- Message recipients: \n")
+	for _, ri := range ed.RecipientInfos() {
+		if ktri, ok := ri.(*protocol.KeyTransRecipientInfo); ok {
+			var rId protocol.RecipientIdentifier
+			err = rId.Unmarshal(ktri.RawRid)
+			if err != nil {
+				return
+			}
+			if rId.IAS != nil {
+				//rId.IAS.SerialNumber
+				fmt.Printf("KTRI Serial = %s\n", rId.IAS.SerialNumber.String())
+			} else if len(rId.SKI) > 0 {
+				fmt.Printf("KTRI SKI = %s\n", hex.EncodeToString(rId.SKI))
+			} else {
+				err = fmt.Errorf("invalid case")
+				return
+			}
+		} else if kari, ok := ri.(*protocol.KeyAgreeRecipientInfo); ok {
+			for _, rEncKey := range kari.RecipientEncryptedKeys {
+				var rId protocol.KeyAgreeRecipientIdentifier
+				err = rId.Unmarshal(rEncKey.RawRID)
+				if err != nil {
+					return
+				}
+				if rId.IAS != nil {
+					//rId.IAS.SerialNumber
+					fmt.Printf("KARI Serial = %s\n", rId.IAS.SerialNumber.String())
+				} else if rId.RKeyID != nil {
+					fmt.Printf("KARI KeyId SKI = %s\n", hex.EncodeToString(rId.RKeyID.SubjectKeyIdentifier))
+				} else {
+					err = fmt.Errorf("invalid case")
+					return
+				}
+			}
+		} else {
+			err = fmt.Errorf("invalid case")
+			return
+		}
+	}
+	fmt.Printf("--- Known keys: \n")
+	for _, kp := range cms.keyPairs {
+		leafCert, err2 := x509.ParseCertificate(kp.Certificate[0])
+		if err2 != nil {
+			return nil, err2
+		}
+		fmt.Printf("Cert Serial = %s\n", leafCert.SerialNumber.String())
+	}
 	plain, err = ed.Decrypt(cms.keyPairs)
 
 	return
