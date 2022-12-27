@@ -51,8 +51,8 @@ func readRecipient(pkcs8Path string, certPath string) *tls.Certificate {
 	return &recipient
 }
 
-func Test(t *testing.T) {
-	cms, err := New(*eccRecipient, *rsaRecipient)
+func TestKARI(t *testing.T) {
+	cms, err := New(*eccRecipient)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -61,5 +61,16 @@ func Test(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Logf("%s\n", plain)
+}
 
+func TestKTRI(t *testing.T) {
+	cms, err := New(*rsaRecipient)
+	if err != nil {
+		t.Fatal(err)
+	}
+	plain, err := cms.Decrypt(testMsg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Logf("%s\n", plain)
 }
