@@ -17,6 +17,7 @@ type OriginatorIdentifierOrKey struct {
 }
 
 func (oriId *OriginatorIdentifierOrKey) Marshal() (asn1.RawValue, error) {
+	// TODO: handle EXPLICIT tag:0
 	if oriId.IAS != nil {
 		return oriId.IAS.RawValue()
 	} else if len(oriId.SKI) > 0 {
@@ -29,27 +30,37 @@ func (oriId *OriginatorIdentifierOrKey) Marshal() (asn1.RawValue, error) {
 }
 
 func (oriId *OriginatorIdentifierOrKey) Unmarshal(value asn1.RawValue) error {
-	if value.Class == asn1.ClassUniversal && value.Tag == asn1.TagSequence {
+	// Process the EXPLICIT tag header
+	if value.Class != asn1.ClassContextSpecific || value.Tag != 0 {
+		return fmt.Errorf("OriginatorIdentifierOrKey: unexpected tag %d\nFull ASN.1 as base64: %s", value.Tag, base64.StdEncoding.EncodeToString(value.FullBytes))
+	}
+	var innerValue asn1.RawValue
+	if err := unmarshalFullyWithParams(value.Bytes, &innerValue, ""); err != nil {
+		return err
+	}
+
+	// Process the inner OriginatorIdentifierOrKey
+	if innerValue.Class == asn1.ClassUniversal && innerValue.Tag == asn1.TagSequence {
 		oriId.IAS = new(IssuerAndSerialNumber)
-		if err := unmarshalFully(value.FullBytes, oriId.IAS); err != nil {
+		if err := unmarshalFully(innerValue.FullBytes, oriId.IAS); err != nil {
 			return err
 		} else {
 			return nil
 		}
 	}
 
-	if value.Class == asn1.ClassContextSpecific && value.Tag == 0 {
+	if innerValue.Class == asn1.ClassContextSpecific && innerValue.Tag == 0 {
 		oriId.SKI = make([]byte, 0)
-		if err := unmarshalFullyWithParams(value.FullBytes, oriId.SKI, "tag:0"); err != nil {
+		if err := unmarshalFullyWithParams(innerValue.FullBytes, &(oriId.SKI), "tag:0"); err != nil {
 			return err
 		} else {
 			return nil
 		}
 	}
 
-	if value.Class == asn1.ClassContextSpecific && value.Tag == 1 {
+	if innerValue.Class == asn1.ClassContextSpecific && innerValue.Tag == 1 {
 		oriId.OriginatorKey = new(OriginatorPublicKey)
-		if err := unmarshalFullyWithParams(value.FullBytes, oriId.OriginatorKey, "tag:1"); err != nil {
+		if err := unmarshalFullyWithParams(innerValue.FullBytes, oriId.OriginatorKey, "tag:1"); err != nil {
 			return err
 		} else {
 			return nil

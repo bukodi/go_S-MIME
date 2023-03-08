@@ -9,12 +9,12 @@ import (
 	"github.com/bukodi/go_S-MIME/oid"
 )
 
-//EnvelopedData ::= SEQUENCE {
-//	version CMSVersion,
-//	originatorInfo [0] IMPLICIT OriginatorInfo OPTIONAL,
-//	RawRecipientInfos RawRecipientInfos,
-//	encryptedContentInfo EncryptedContentInfo,
-//	unprotectedAttrs [1] IMPLICIT UnprotectedAttributes OPTIONAL }
+//	EnvelopedData ::= SEQUENCE {
+//		version CMSVersion,
+//		originatorInfo [0] IMPLICIT OriginatorInfo OPTIONAL,
+//		RawRecipientInfos RawRecipientInfos,
+//		encryptedContentInfo EncryptedContentInfo,
+//		unprotectedAttrs [1] IMPLICIT UnprotectedAttributes OPTIONAL }
 type EnvelopedData struct {
 	Version           int
 	OriginatorInfo    asn1.RawValue        `asn1:"optional,tag:0"`
@@ -68,8 +68,9 @@ func (ed *EnvelopedData) RecipientInfos() []RecipientInfo {
 
 func (ed *EnvelopedData) decryptKey(keyPair tls.Certificate) ([]byte, error) {
 	for _, ri := range ed.RecipientInfos() {
-		key, err := ri.decryptKey(keyPair)
-		if err == nil {
+		if key, err := ri.decryptKey(keyPair); err != nil {
+			return nil, err
+		} else if key != nil {
 			return key, nil
 		}
 	}

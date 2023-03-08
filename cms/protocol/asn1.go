@@ -2,6 +2,7 @@ package protocol
 
 import (
 	"encoding/asn1"
+	"encoding/hex"
 	"fmt"
 	"strings"
 )
@@ -18,6 +19,7 @@ func unmarshalFully(b []byte, val interface{}) (err error) {
 }
 
 func unmarshalFullyWithParams(b []byte, val interface{}, params string) (err error) {
+	fmt.Printf("\nunmarshall: %s\n", hex.EncodeToString(b))
 	rest, err := asn1.UnmarshalWithParams(b, val, params)
 	if err != nil {
 		return err
